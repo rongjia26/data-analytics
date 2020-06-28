@@ -1,0 +1,174 @@
+---
+title: "Flight Delay Analysis Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    social: [ "twitter", "facebook", "menu"]
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(knitr)
+library(DT)
+library(rpivotTable)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(openintro)
+library(highcharter)
+library(ggvis)
+```
+
+```{r}
+library(readr)
+flightdata <- read_csv("/Users/xixibaobao/Desktop/study/Big Data/Analysis-3/On_Time_50.csv")
+attach(flightdata)
+flightdata1 <-filter(flightdata,DepDelay>0)
+```
+
+```{r}
+mycolors <- c("blue", "#FFC125", "darkgreen", "darkorange")
+```
+
+Interactive Data Visualization
+=====================================
+
+Row {data-height=250}
+-------------------------------------
+
+### Flight Delay Analysis
+
+```{r}
+valueBox(paste("Delay"),
+         color = "warning")
+```
+
+### Total Departure Delay in US
+
+```{r}
+na <- is.na(flightdata$DepDelay)
+flightdata00 <- flightdata[!na,]
+gauge(round(mean(flightdata00$DepDelay),
+            digits = 2),
+      min = -20,
+      max = 40,
+      gaugeSectors(success = c(-20, 0),
+                   warning = c(0, 20),
+                   danger = c(20, 40),
+                   colors = c("green", "yellow", "red")))
+```
+
+### Total Departure Delay in US
+
+```{r}
+valueBox(length(flightdata$DepDelay[flightdata$DepDelay>0]),
+         icon = "fa-helicopter")
+```
+
+### Total Carrier Delay in US
+
+```{r}
+valueBox(length(flightdata$CarrierDelay[flightdata$CarrierDelay>0]),
+         icon = "fa-helicopter")
+```
+
+### Total Weather Delay in US
+
+```{r}
+valueBox(length(flightdata$WeatherDelay[flightdata$WeatherDelay>0]),
+         icon = "fa-helicopter")
+```
+
+Row {data-height=350}
+-------------------------------
+### Scatter Plot of DepatureTime Vs DepatureDelay
+
+```{r}
+p4 <- plot_ly(flightdata00, x=~DepTime) %>%
+  add_markers(y = ~DepDelay,
+              text = ~paste("DepartureTime: ", DepTime),
+              showlegend = F) %>%
+  add_lines(y = ~fitted(loess(DepDelay ~ DepTime)),
+            name = "Loess Smoother",
+            color = I("#FFC125"),
+            showlegend = T,
+            line = list(width=4)) %>%
+  layout(xaxis = list(title = "DepTime"),
+         yaxis = list(title = "DepDelay"))
+p4
+```
+
+### Top States with Delay flights
+
+```{r}
+p2 <- flightdata1 %>%
+  group_by(OriginStateName) %>%
+  summarise(count = n()) %>%
+  filter(count>700) %>%
+  plot_ly(labels = ~OriginStateName,
+          values = ~count,
+          marker = list(colors = mycolors)) %>%
+  add_pie(hole = 0.2) %>%
+  layout(xaxis = list(zeroline = F,
+                      showline = F,
+                      showticklabels = F,
+                      showgrid = F),
+         yaxis = list(zeroline = F,
+                      showline = F,
+                      showticklabels=F,
+                      showgrid=F))
+p2
+```
+
+Row{data-height=350}
+------------------------------------
+### DepartureDelay number By OriginState
+
+```{r}
+flightdata1 <-filter(flightdata,DepDelay>0) 
+p1 <- flightdata1 %>%
+  group_by(OriginStateName) %>%
+  summarise(count = n()) %>%
+  plot_ly(x = ~OriginStateName,
+          y = ~count,
+          color = "blue",
+          type = 'bar') %>%
+  layout(xaxis = list(title = "Number of delay flight By Original State"),
+         yaxis = list(title = 'Count'))
+p1
+```
+
+BoxPlot
+========================================
+### Box Plot of Top State
+
+```{r}
+flightdata1 %>%
+  group_by(UniqueCarrier) %>%
+  ggvis(~UniqueCarrier, ~DepDelay, fill = ~UniqueCarrier) %>%
+  layer_boxplots()
+```
+
+Map
+========================================
+
+### Map
+
+```{r}
+Depmap <- filter(flightdata1,DepDel15==1)  %>%
+  group_by(OriginStateName) %>%
+  count(DepDel15) %>%
+  select(-(DepDel15))
+
+highchart() %>%
+  hc_title(text = "Longtime(>15min) Departure Delay in US") %>%
+  hc_subtitle(text = "Source: On_Time_50.csv") %>%
+  hc_add_series_map(usgeojson, Depmap,
+                    name = "OriginStateName",
+                    value = "n",
+                    joinBy = c("woename", "OriginStateName")) %>%
+  hc_mapNavigation(enabled = T)
+```
+

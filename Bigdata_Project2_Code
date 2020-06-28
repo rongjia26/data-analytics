@@ -1,0 +1,66 @@
+pham <- read.csv("C:/Users/Linyz/Desktop/R/bigdata/Pharmaceuticals.csv")
+str(pham)
+head(pham)
+pairs(pham[3:11])
+# Scatter plot 
+plot(pham$PE_Ratio~ pham$Market_Cap, data = pham)
+with(pham,text(pham$PE_Ratio~ pham$Market_Cap, labels=pham$Symbol,pos=2))
+
+# Normalize 
+p = pham[,-c(1,2,12,13,14)] #remove the first column(to move out character data)
+means = apply(p,2,mean) #"2"means you have data in column, use "1" if data is in rows
+sds = apply(p,2,sd)
+normal = scale(p,center=means,scale=sds)
+
+# Calculate distance matrix  
+pdistance = dist(normal)
+print(pdistance,digits = 1)
+
+#algorithms
+# Hierarchical agglomerative clustering using complete linkage
+pham.hc.c = hclust(pdistance)
+plot(pham.hc.c,hang=-1,labels=pham$Symbol,xlab="distance between companies",main='Cluster of the Industry')
+rect.hclust(pham.hc.c, k=4, border = 'red')
+
+# Hierarchical agglomerative clustering using "average" linkage 
+pham.hc.a<-hclust(pdistance,method="average")
+plot(pham.hc.a,hang=-1)
+
+# Cluster membership
+member.c = cutree(pham.hc.c,4) #??????ÿ??cluster???м?????˾??4??ʾ??4??cluster
+member.a = cutree(pham.hc.a,4)
+member.c5 = cutree(pham.hc.c,5) 
+table(member.c,member.a)
+table(member.c)
+table(member.c5)
+#number of clusters
+# Scree Plot
+wss <- (nrow(normal)-1)*sum(apply(normal,2,var)) #within sum of squares
+for (i in 2:20) wss[i] <- sum(kmeans(normal, centers=i)$withinss)
+plot(1:20, wss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares") 
+#either 3 or 4 clusters should be good enough
+
+# Silhouette Plot
+library(cluster) 
+plot(silhouette(cutree(pham.hclust,3), pdistance))
+plot(silhouette(cutree(pham.hclust,4), pdistance)) 
+plot(silhouette(cutree(pham.hclust,5), pdistance)) #barԽ??Խ?ã???????
+#????2~7 ???гʸ????ģ?12??outlier
+
+# K-means clustering
+set.seed(123)
+kc5<-kmeans(normal,5) 
+kc4<-kmeans(normal,4) #4??cluster
+#Clustering vector: ?ڼ?????˾???ֵ??˵ڼ???cluster 
+clusplot(normal,kc4$cluster,
+         color = T,shade = T,
+         labels = 2,lines = 0, main = "Cluster Plot")
+
+#weight
+# Characterizing clusters 
+nom <-aggregate(normal,list(member.c),mean)
+aggre <- aggregate(p,list(member.c),mean)
+
+# Silhouette Plot
+library(cluster) 
+plot(silhouette(cutree(pham.hclust,4), pdistance)) 

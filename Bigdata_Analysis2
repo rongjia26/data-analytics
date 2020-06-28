@@ -1,0 +1,129 @@
+library(dplyr)
+library(ggplot2)
+attach(web)
+# boxplot
+web %>%
+  group_by(Focus) %>%
+  ggplot(aes(x=Focus, y=Avgtimeonpage, col = Focus)) +
+  geom_boxplot()
+
+# relationship between visitors and avgtimeonpage
+# unique(web$Visitors)
+plot(web$Newvisits, web$Avgtimeonpage, main = "The scatterplot for Visitors and Average time on page",
+     xlab = "Number of Newvisitors", ylab = "Avgtimeonpage")
+
+library(Hmisc)
+histogram(web$Avgtimeonpage[web$Avgtimeonpage < 150],main="Average time on page", 
+          xlab="Average_time_on_page",nint=50, col="dark green")
+a <-density(web$Avgtimeonpage[web$Avgtimeonpage < 150])
+plot(a,main = "Average time on page",xlab = "Number of Visitors")
+
+x <- web$Avgtimeonpage[web$Avgtimeonpage < 150]
+h <- hist(x, col = "peachpuff",
+          main = "Average time on page",xlab = "Number of Visitors" )
+xfit <-seq(min(x), max(x),length=40)
+yfit <-dnorm(xfit,mean = mean(x),sd=sd(x))
+yfit <-yfit*diff(h$mids[1:2])*length(x)
+lines(xfit,yfit,col="black",lwd=2)
+
+# barplot
+ggplot(web, aes(x=Newvisits, y=Pageviews, fill = Newvisits)) +
+  geom_col() +
+  coord_flip() +
+  ggtitle('Number of New Visitors')
+
+web$Newvisits
+
+#Network Diagram
+library(igraph)
+y <- data.frame(web$Previouspagepath, web$Pagepath)
+y.network<-graph.data.frame(y,directed = T)
+V(y.network)
+E(y.network)
+degree(y.network)
+#plot(y.network)
+#clean the data of network
+bad.vs<-V(y.network)[degree(y.network)<120000]
+y.network <-delete.vertices(y.network,bad.vs)
+plot(y.network)
+
+library(igraph)
+head(web)
+y <- data.frame(web$Previouspagepath, web$Pagepath)
+net <- graph.data.frame(y, directed = TRUE)
+V(net)
+E(net)
+degree(net)
+bad <- V(net)[degree(net)<12000]
+net <- delete.vertices(net, bad)
+hs <- hub_score(net)$vector
+
+l <- layout_with_kk(net)
+plot(net, vertex.size = 10,  
+     main = 'Network',
+     vertex.label.font=2, vertex.label.color="gray40",
+     vertex.label.cex=.7, edge.color="gray85",
+     edge.arrow.size=0.3)
+
+
+#build corpus
+library(tm)
+corpus<-iconv(web$Pagetitle,to='utf-8-mac')#convert charater vetcor between encodings
+corpus<-Corpus(VectorSource(corpus))
+inspect(corpus[1:5])
+
+#clean text 
+corpus <- tm_map(corpus,tolower)
+inspect(corpus[1:5])
+
+corpus<-tm_map(corpus,removeNumbers)
+inspect(corpus[1:5])
+
+corpus<-tm_map(corpus,removePunctuation)
+inspect(corpus[1:5])
+
+clean<-tm_map(corpus,removeWords,c("brandeis","university"))
+inspect(clean[8])
+
+clean<-tm_map(clean,stripWhitespace)
+
+#Term document matrix
+tdm <-TermDocumentMatrix(clean)
+tdm
+tdm <-as.matrix(tdm)
+tdm[1:10,1:20]
+
+#Bar Plot
+terms <-rowSums(tdm)
+barplot(terms[terms>2000],
+        las=2,
+        col=rainbow(15))#画大于20的terms
+
+#Word cloud
+library(wordcloud)
+wordcloud(words = names(terms),
+          freq = terms,
+          max.words = 80,
+          min.freq = 10,
+          colors = brewer.pal(10, "Dark2"),
+          scale = c(7,0.5),
+          rot.per = 0.2)#旋转
+
+set.seed(1234)
+terms1 <-subset(terms,terms>15)
+wordcloud(words = names(terms1),
+          freq = terms1)
+
+#Wordcloud2
+library(wordcloud2)
+w <-data.frame(names(terms),terms)
+str(w)
+colnames(w) <- c('word','freq') #define the column name 
+wordcloud2(w,
+           size=0.5,
+           shape='triangle',
+           rotateRatio = 0.5)
+
+letterCloud(w,size=0.5,
+            shape='triangle',
+            word='a')

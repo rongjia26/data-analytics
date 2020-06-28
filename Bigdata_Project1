@@ -1,0 +1,99 @@
+pj1 <- read.csv(file.choose(), header = T)
+
+library(choroplethr)
+library(choroplethrMaps)
+library(openintro)
+
+colnames(pj1) <- c('region', 'value', 'X')
+pj1$region <- abbr2state(pj1$region)
+pj1$region <- tolower(pj1$region)
+state_choropleth(pj1,
+                 title = "Number of stores in US",
+                 legend = "Number of stores in each state")
+#3.
+pj1.2 <- read.csv(file.choose(), header = T)
+str(pj1.2)
+library(ggplot2)
+library(fiftystater)
+library(colorplaner)
+library(mapproj)
+colnames(pj1.2) <- c('region', 'value','sum_amt', 'X')
+pj1.2$region <- abbr2state(pj1.2$region)
+pj1.2$region <- tolower(pj1.2$region)
+state_choropleth(pj1.2,
+                 title = "Number of stores in US",
+                 legend = "Number of stores in each state")
+p <- ggplot(pj1.2,aes(map_id = region))+
+  geom_map(aes(fill=Sum.AMT.), map= fifty_states)+
+  expand_limits(x=fifty_states$long, y=fifty_states$lat)+
+  coord_map()+
+  labs(x="", y="")
+p+fifty_states_inset_boxes()
+p+aes(fill2 = value) + scale_fill_colourplane()+
+  theme(legend.position = 'right')+
+  ggtitle('Total sales and number of stores in each state')
+
+#6
+pj1.6 <- read.csv("C:/Users/Linyz/Desktop/R/bigdata/project 1.6.csv")
+str(pj1.6)
+library(ggplot2)
+library(fiftystater)
+library(colorplaner)
+library(mapproj)
+colnames(pj1.6) <- c('STATE', 'NINA_revenue','N_stores', 'NINEWEST_revenue','NW_stores')
+pj1.6$STATE <- abbr2state(pj1.6$STATE)
+pj1.6$STATE <- tolower(pj1.6$STATE)
+p1 <- ggplot(pj1.6,aes(map_id = STATE))+
+  geom_map(aes(fill=NINA_revenue), map= fifty_states)+
+  expand_limits(x=fifty_states$long, y=fifty_states$lat)+
+  coord_map()+
+  labs(x="", y="")
+p1+fifty_states_inset_boxes()
+p1+aes(fill2 = N_stores) + scale_fill_colourplane()+
+  theme(legend.position = 'right')+
+  ggtitle('NINA: Number of stores and Total Revenue')
+
+p2 <- ggplot(pj1.6,aes(map_id = STATE))+
+  geom_map(aes(fill=NINEWEST_revenue), map= fifty_states)+
+  expand_limits(x=fifty_states$long, y=fifty_states$lat)+
+  coord_map()+
+  labs(x="", y="")
+p2+fifty_states_inset_boxes()
+p2+aes(fill2 = NW_stores) + scale_fill_colourplane()+
+  theme(legend.position = 'right')+
+  ggtitle('NINEWEST: Number of stores and Total Revenue')
+
+#6b
+pj1.6b <- read.csv("C:/Users/Linyz/Desktop/R/bigdata/project 1.6b.csv")
+str(pj1.6b)
+par(mfrow=c(1,1)) #2 rows, 1 column
+#colnames(pj1.6) <- c('STATE','NINA_Revenue','N_num_stores',
+#                     'NINEWEST_Revenue','NW_num_stores')
+ggplot(pj1.6b, aes(x=STATE, y= Total.Revenue, fill = BRAND))+
+  geom_col()+
+  coord_flip()+
+  ggtitle('Revenue of NINA and NINEWEST in each states')
+ggplot(pj1.6b, aes(x=STATE, y= Number.of.Stores, fill = BRAND))+
+  geom_col()+
+  coord_flip()+
+  ggtitle('Number of Stores in each states')
+library(dplyr) 
+pj1.6b <- mutate(pj1.6b, rev_per_store=pj1.6b$Total.Revenue/pj1.6b$Number.of.Stores)
+plot(pj1.6b$rev_per_store)
+ggplot(pj1.6b, aes(x=STATE, y= rev_per_store, fill = BRAND))+
+  geom_col()+
+  coord_flip()+
+  ggtitle('Revenue of NINA and NINEWEST in each states')
+boxplot(rev_per_store ~ BRAND, pj1.6b)
+boxplot(rev_per_store ~ BRAND, data = pj1.6b, 
+        col=(c("#F8766D","#00BFC4")),
+        main="Revenue per store")
+
+pj1.6bb <- read.csv("C:/Users/Linyz/Desktop/R/bigdata/project 1.6bb.csv")
+pie(pj1.6bb$Total.Revenue, labels = lbls,
+    col = c("#F8766D","#00BFC4"),
+    main = 'Total Revenue')
+pct <- round(pj1.6bb$Total.Revenue/sum(pj1.6bb$Total.Revenue)*100)
+lbls <- c("NINA", "NINEWEST")
+lbls <- paste(lbls, pct) # add percents to labels
+lbls <- paste(lbls,"%",sep="")
